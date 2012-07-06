@@ -1,0 +1,6 @@
+*.js 
+.git 
+public/
+node_modules/
+.nodemonignore.swp
+.mongochess.coffee.swp
