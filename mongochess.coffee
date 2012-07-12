@@ -14,46 +14,38 @@ db.open (err, p_db) ->
     @use 'zappa'
     @use 'static'
 
-    ### this isn't used anymore
     sortScores = (that, intro, pos) ->
-      sorted = []
-      links = []
-      for own k,v of pos.moves
-        d = {move:k}
-        d['attrSafeMove']=k.replace("+","check").replace("=","prom")
-        for own k2,v2 of v
-          d[k2] = v2
-        depth = 1
-        scoreDepth = []
-        for s in d.scores
-          scoreDepth.push "["+(depth++)+","+s+"]"
-        d['scoreDepth'] = scoreDepth
-        sorted.push d
-        links.push d.link
-      sorted.sort (a,b) -> if a.score < b.score then 1 else -1
-      that.render 'index', intro:intro, pos:pos, sorted:sorted
-    ###
+      if pos.moves
+        for k in pos.moves
+          k['attrSafeMove']=k['move'].replace("+","check").replace("=","prom")
+          depth = 1
+          scoreDepth = []
+          for s in k.scores
+            scoreDepth.push "["+(depth++)+","+s+"]"
+          k['scoreDepth'] = scoreDepth
+      that.render 'index', intro:intro, pos:pos
 
     @get '/': ->
       that = this
       p_db.collection 'positions', (err,collection) ->
-        collection.findOne {"_id":new ObjectId("4fd80ef98855471ee9e2e598")}, (err,pos) ->
-          intro = "Showing pre-analyzed positions starting from a particular variation of the Ulvestad-variation of the two knights defense"
-          that.render 'index', intro:intro, pos:pos, sorted:pos.moves
+        collection.findOne {"_id":new ObjectId("4ff7a868781db024b49a1432")}, (err,pos) ->
+          intro = "Showing pre-analyzed chess positions"
+          sortScores that, intro, pos
 
     @get '/ulvestad-variation': ->
       that = this
       p_db.collection 'positions', (err,collection) ->
-        collection.findOne {"_id":new ObjectId("4fd80ef98855471ee9e2e598")}, (err,pos) ->
+        collection.findOne {"fen":"3k3r/p1p2ppp/1r6/4P3/3P3b/1PNB1b2/P4P1P/R4RK1 b - - 2 20"}, (err,pos) ->
           intro = "Showing pre-analyzed positions starting from a particular variation of the Ulvestad-variation of the two knights defense"
-          that.render 'index', intro:intro, pos:pos, sorted:pos.moves
+          sortScores that, intro, pos
 
-    @get '/id/:id': ->
+    @get '/fen/:fen': ->
       that = this
+      that.params.fen = that.params.fen.replace(/\_/g,'/')
       p_db.collection 'positions', (err,collection) ->
-        collection.findOne "_id":new ObjectId(that.params.id), (err,pos) ->
-          intro = "Showing pre-analyzed positions starting from a particular variation of the Ulvestad-variation of the two knights defense"
-          that.render 'index', intro:intro, pos:pos, sorted:pos.moves
+        collection.findOne "fen":that.params.fen, (err,pos) ->
+          intro = "Showing pre-analyzed chess positions"
+          sortScores that, intro, pos
 
     @view index: ->
       @title = 'mongochess'
@@ -106,55 +98,56 @@ db.open (err, p_db) ->
             td "best moves"
             td "score at depth"
             td "position after best moves"
-        for k in @sorted
-          tr -> 
-            td style:"width:100px", -> 
-              if k.link then a href: "/id/#{k.link}", "#{k.move}" else k.move
-            td style:"width:100px", ->
-              span k.score
-            td style:"width:300px", -> 
-              div style:"width:300px", ->
-                span class:'move', mv for mv in k.bestMoves
-            td style:"width:500px;", ->
-              div id:"#{k.attrSafeMove}-plot",style:"width:500px;height:200px;text-align:center;"
-              script ->
-                "
-                $(document).ready(function() {
-                  setTimeout(function(){
-                  $.plot($('##{k.attrSafeMove}-plot'),
-                    [[#{k.scoreDepth}]],
-                    {
-                      series: {
-	                lines: {
-	                  show: true
-	                }
+        if @pos.moves
+          for k in @pos.moves
+            tr -> 
+              td style:"width:100px", -> 
+                if k.fen then a href: "/fen/#{k.fen.replace(/\//g, '_')}", "#{k.move}" else k.move
+              td style:"width:100px", ->
+                span k.score
+              td style:"width:300px", -> 
+                div style:"width:300px", ->
+                  span class:'move', mv for mv in k.bestMoves
+              td style:"width:500px;", ->
+                div id:"#{k.attrSafeMove}-plot",style:"width:500px;height:200px;text-align:center;"
+                script ->
+                  "
+                  $(document).ready(function() {
+                    setTimeout(function(){
+                    $.plot($('##{k.attrSafeMove}-plot'),
+                      [[#{k.scoreDepth}]],
+                      {
+                        series: {
+	                  lines: {
+	                    show: true
+	                  }
+	                },
+	              yaxis: {
 	              },
-	            yaxis: {
-	            },
-	            xaxis: {
-	            },
-	            grid : {
-             	      borderWidth: 0
-                    }
+	              xaxis: {
+	              },
+	              grid : {
+               	      borderWidth: 0
+                      }
+                    });
+                    }, 1000);
+                  }); 
+                  "
+              td style:"width:200px", ->
+                div id:"#{k.attrSafeMove}-end-container"
+                script ->
+                  "
+                  $(document).ready(function() {
+                    (new PgnViewer({
+                      boardName: '#{k.attrSafeMove}-end',
+                      pieceSet: 'merida',
+                      pieceSize: 24,
+                      boardImagePath:'http://www3.skeweredrook.com:8001',
+                      dontOutputNavButtons: true,
+                      ignoreFlipping: true,
+                    })).setupFromFen('#{k.endFen}');
                   });
-                  }, 1000);
-                }); 
-                "
-            td style:"width:200px", ->
-              div id:"#{k.attrSafeMove}-end-container"
-              script ->
-                "
-                $(document).ready(function() {
-                  (new PgnViewer({
-                    boardName: '#{k.attrSafeMove}-end',
-                    pieceSet: 'merida',
-                    pieceSize: 24,
-                    boardImagePath:'http://www3.skeweredrook.com:8001',
-                    dontOutputNavButtons: true,
-                    ignoreFlipping: true,
-                  })).setupFromFen('#{k.endFen}');
-                });
-                "
+                  "
 
     @view layout: ->
       doctype 5
