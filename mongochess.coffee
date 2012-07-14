@@ -8,9 +8,11 @@ replSet = new mongodb.ReplSetServers( [
   read_secondary:true
 )
 
-db = new mongodb.Db('mongochess', replSet)
+#db = new mongodb.Db('mongochess', replSet)
+db = new mongodb.Db('mongochess', new mongodb.Server("localhost", 27017))
 db.open (err, p_db) ->
-  require('zappajs') 'www3.skeweredrook.com', 8001, ->
+  #require('zappajs') 'www3.skeweredrook.com', 8001, ->
+  require('zappajs') 'localhost', 8001, ->
     @use 'zappa'
     @use 'static'
 
@@ -28,7 +30,7 @@ db.open (err, p_db) ->
     @get '/': ->
       that = this
       p_db.collection 'positions', (err,collection) ->
-        collection.findOne {"_id":new ObjectId("4ff7a868781db024b49a1432")}, (err,pos) ->
+        collection.findOne {"fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"}, (err,pos) ->
           intro = "Showing pre-analyzed chess positions"
           sortScores that, intro, pos
 

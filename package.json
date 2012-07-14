@@ -1,0 +1,11 @@
+{ 
+  "name" : "mongochess-viewer",
+  "version" : "1.0.0",
+  "scripts": {
+    "preinstall" : "npm install mongodb '--mongodb:native'"
+  },
+  "dependencies": {
+    "zappajs": "0.4.2",
+    "mongodb": "*" 
+  }
+}
