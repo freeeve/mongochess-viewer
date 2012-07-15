@@ -8,11 +8,11 @@ replSet = new mongodb.ReplSetServers( [
   read_secondary:true
 )
 
-#db = new mongodb.Db('mongochess', replSet)
-db = new mongodb.Db('mongochess', new mongodb.Server("localhost", 27017))
+db = new mongodb.Db('mongochess', replSet)
+#db = new mongodb.Db('mongochess', new mongodb.Server("localhost", 27017))
 db.open (err, p_db) ->
-  #require('zappajs') 'www3.skeweredrook.com', 8001, ->
-  require('zappajs') 'localhost', 8001, ->
+  require('zappajs') 'www3.skeweredrook.com', 8001, ->
+  #require('zappajs') 'localhost', 8001, ->
     @use 'zappa'
     @use 'static'
 
@@ -106,8 +106,11 @@ db.open (err, p_db) ->
               td style:"width:100px", -> 
                 if k.fen then a href: "/fen/#{k.fen.replace(/\//g, '_')}", "#{k.move}" else k.move
               td style:"width:100px", ->
-                span k.score
-              td style:"width:300px", -> 
+                if Math.abs(k.score) > 999.0 && k.score < 0 then span "mated in #{10000 - Math.abs(k.score)} moves or less"
+                else if Math.abs(k.score) > 999.0 && k.score > 0 then span "mate in #{10000 - Math.abs(k.score)} moves or less"
+                else if k.forcedDraw then span "forced draw"
+                else span k.score
+              td style:"width:300px", ->
                 div style:"width:300px", ->
                   span class:'move', mv for mv in k.bestMoves
               td style:"width:500px;", ->
